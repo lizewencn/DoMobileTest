@@ -4,7 +4,7 @@
 
 
     <item
-        android:id="rate"
+        android:id="@+id/rate"
         android:title="更新"
         app:showAsAction="always" />
 </menu>

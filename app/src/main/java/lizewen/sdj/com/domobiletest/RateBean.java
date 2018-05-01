@@ -1,6 +1,7 @@
 package lizewen.sdj.com.domobiletest;
 
 import java.io.Serializable;
+import java.math.BigDecimal;
 
 /**
  * created by Administrator
@@ -12,7 +13,7 @@ public class RateBean implements Serializable {
 
     private String currencyName;
 
-    private float rate;
+    private BigDecimal rate;
 
     public String getCurrencyName() {
         return currencyName;
@@ -22,11 +23,11 @@ public class RateBean implements Serializable {
         this.currencyName = currencyName;
     }
 
-    public float getRate() {
+    public BigDecimal getRate() {
         return rate;
     }
 
-    public void setRate(float rate) {
+    public void setRate(BigDecimal rate) {
         this.rate = rate;
     }
 }

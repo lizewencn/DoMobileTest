@@ -8,6 +8,8 @@ import android.view.ViewGroup;
 import android.widget.EditText;
 import android.widget.TextView;
 
+import com.yanzhenjie.recyclerview.swipe.SwipeMenuAdapter;
+
 import java.util.List;
 
 /**
@@ -16,7 +18,7 @@ import java.util.List;
  * email：lizewencn@126.com
  * Desc:
  */
-public class RateAdapter extends RecyclerView.Adapter<ViewHolder> {
+public class RateAdapter extends SwipeMenuAdapter<ViewHolder> {
 
     private List<RateBean> rateBeanList;
 
@@ -28,11 +30,15 @@ public class RateAdapter extends RecyclerView.Adapter<ViewHolder> {
     }
 
     @Override
-    public ViewHolder onCreateViewHolder(ViewGroup parent, int viewType) {
-
+    public View onCreateContentView(ViewGroup parent, int viewType) {
         View view = LayoutInflater.from(context).inflate(R.layout.layout_item, parent, false);
 
-        return new ViewHolder(view);
+        return view;
+    }
+
+    @Override
+    public ViewHolder onCompatCreateViewHolder(View realContentView, int viewType) {
+        return new ViewHolder(realContentView);
     }
 
     @Override
