@@ -23,6 +23,7 @@ public class MyComparator implements Comparator<RateBean>{
         int anInt1 = preferences.getInt(o1.getCurrencyName(), -1);
         int anInt2 = preferences.getInt(o2.getCurrencyName(), -1);
         return anInt1-anInt2;
+
     }
 
 }
