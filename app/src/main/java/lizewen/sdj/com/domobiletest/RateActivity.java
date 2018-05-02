@@ -1,7 +1,5 @@
 package lizewen.sdj.com.domobiletest;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.graphics.Rect;
 import android.os.Handler;
 import android.os.Message;
@@ -10,6 +8,7 @@ import android.os.Bundle;
 import android.support.v7.widget.DefaultItemAnimator;
 import android.support.v7.widget.LinearLayoutManager;
 import android.support.v7.widget.RecyclerView;
+import android.support.v7.widget.helper.ItemTouchHelper;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.Menu;
@@ -19,8 +18,6 @@ import android.widget.Toast;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
-import com.yanzhenjie.recyclerview.swipe.SwipeMenuRecyclerView;
-import com.yanzhenjie.recyclerview.swipe.touch.OnItemMoveListener;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -43,7 +40,7 @@ import java.util.TreeMap;
 
 public class RateActivity extends AppCompatActivity {
 
-    SwipeMenuRecyclerView recyclerView;
+    RecyclerView recyclerView;
 
     private MyHandle handle = new MyHandle(this);
     RateAdapter rateAdapter;
@@ -64,7 +61,6 @@ public class RateActivity extends AppCompatActivity {
 
         setTitle("汇率助手");
         recyclerView = findViewById(R.id.recycle_view);
-        recyclerView.setLongPressDragEnabled(true);
         LinearLayoutManager manager = new LinearLayoutManager(this, LinearLayoutManager.VERTICAL, false);
         recyclerView.setLayoutManager(manager);
         recyclerView.setItemAnimator(new DefaultItemAnimator());
@@ -75,7 +71,6 @@ public class RateActivity extends AppCompatActivity {
                 outRect.top = 1;
             }
         });
-        recyclerView.setOnItemMoveListener(onItemMoveListener);
 
     }
 
@@ -148,42 +143,45 @@ public class RateActivity extends AppCompatActivity {
         Log.e("aaaaaaaaaa:", "" + innerMap.toString());
 
         if (innerMap.isEmpty()) return;
-
+        //获取美元汇率
+        BigDecimal usd = (BigDecimal) newMap.get("USD");
         Set<Map.Entry<String, Object>> entries = newMap.entrySet();
         Iterator<Map.Entry<String, Object>> iterator = entries.iterator();
 
+
         rateBeanList = new ArrayList<>(newMap.size());
         RateBean rateBean = null;
+
         while (iterator.hasNext()) {
             Map.Entry<String, Object> entry = iterator.next();
             rateBean = new RateBean();
-            rateBean.setCurrencyName(entry.getKey());
-            rateBean.setRate((BigDecimal) entry.getValue());
+            String key = entry.getKey();
+            BigDecimal value = (BigDecimal) entry.getValue();
+            rateBean.setCurrencyName(key);
+            rateBean.setRate((BigDecimal) value);
+            //计算以1美元为基准的金额
+            if("USD".equals(key)){
+                rateBean.setAmount(new BigDecimal("1"));
+            }else{
+                BigDecimal multiply = new BigDecimal("1").divide(usd, 4, BigDecimal.ROUND_HALF_UP).multiply( value);
+                rateBean.setAmount(multiply);
+            }
             rateBeanList.add(rateBean);
 
         }
         /**
          * 重现用户的自定义排序
          */
-        int customCount = getCustomCount();
-
-        for (int i = 0; i < rateBeanList.size(); i++) {
-            if (customCount == 0) break;
-            RateBean rateBean1 = rateBeanList.get(i);
-            int customPosition = getCustomPosition(rateBean1.getCurrencyName());
-            if (customPosition != -1) {
-                rateBeanList.set(customPosition, rateBean1);
-                customCount--;
-            }
-
-        }
+        Collections.sort(rateBeanList,new MyComparator(this));
 
 
         rateAdapter = new RateAdapter(rateBeanList, this);
         recyclerView.setAdapter(rateAdapter);
-
+        ItemTouchHelper itemTouchHelper = new ItemTouchHelper(new SimpleItemTouchHelperCallback(rateAdapter));
+        itemTouchHelper.attachToRecyclerView(recyclerView);
 
     }
+
 
     /**
      * 将取回的数据按字母顺序排序
@@ -201,37 +199,6 @@ public class RateActivity extends AppCompatActivity {
         treeMap.putAll(map);
 
         return treeMap;
-    }
-
-    /**
-     * 在本地保存人为变更的顺序
-     */
-    private void savePopistionLocal(String currencyName, int newPosition) {
-
-        SharedPreferences sharedPreferences = getSharedPreferences("custom_position", Context.MODE_PRIVATE);
-        SharedPreferences.Editor editor = sharedPreferences.edit();
-        editor.putInt(currencyName, newPosition);
-        editor.commit();
-    }
-
-    private int getCustomPosition(String currencyName) {
-        SharedPreferences sharedPreferences = getSharedPreferences("custom_position", Context.MODE_PRIVATE);
-        int anInt = sharedPreferences.getInt(currencyName, -1);
-        return anInt;
-    }
-
-    /**
-     * 获取自定义的数量
-     *
-     * @return
-     */
-    private int getCustomCount() {
-        SharedPreferences sharedPreferences = getSharedPreferences("custom_position", Context.MODE_PRIVATE);
-        Map<String, ?> all = sharedPreferences.getAll();
-        if (all != null) {
-            return all.size();
-        }
-        return 0;
     }
 
     public void onFail(String msg) {
@@ -282,22 +249,4 @@ public class RateActivity extends AppCompatActivity {
         }
     }
 
-    private OnItemMoveListener onItemMoveListener = new OnItemMoveListener() {
-        @Override
-        public boolean onItemMove(int fromPosition, int toPosition) {
-            // 当Item被拖拽的时候。
-
-            Collections.swap(rateBeanList, fromPosition, toPosition);
-            rateAdapter.notifyItemMoved(fromPosition, toPosition);
-            //保存新位置在本地
-            savePopistionLocal(rateBeanList.get(toPosition).getCurrencyName(), toPosition);
-            return true;// 返回true表示处理了，返回false表示你没有处理。
-        }
-
-        @Override
-        public void onItemDismiss(int position) {
-            // 当Item被滑动删除掉的时候，在这里是无效的，因为这里没有启用这个功能。
-            // 使用Menu时就不用使用这个侧滑删除啦，两个是冲突的。
-        }
-    };
 }
